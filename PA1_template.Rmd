@@ -8,18 +8,112 @@ output:
 
 ## Loading and preprocessing the data
 
-
+  * Load the data
+```{r, echo = FALSE, message = FALSE}
+    library(data.table) 
+    library(lubridate)
+```
+```{r, echo = TRUE}
+    activity <- data.table(read.csv("activity.csv", sep = ",", header = TRUE))
+```
 
 ## What is mean total number of steps taken per day?
-
-
+  * Total number of steps taken per day
+```{r}
+    activity[, totalActivity := sum(steps), by = date]
+```
+ 
+```{r, echo = FALSE}
+    hist(activity$totalActivity, breaks=10, main = "Histogram of the total number of steps taken each day", xlab = "Total steps per day" ) 
+```
+ 
+ * Mean of total number of steps taken per day
+```{r, echo = FALSE}
+    mean(activity$totalActivity, na.rm = TRUE)
+```
+ 
+ * Median  of total number of steps taken per day
+```{r, echo = FALSE}
+    median(activity$totalActivity, na.rm = TRUE)
+```
 
 ## What is the average daily activity pattern?
-
-
-
+* Average of steps per 5-minute interval
+```{r}
+    activityPerInterval <- activity[, list(averageActivity = mean(steps, na.rm = TRUE)), by = interval]
+```
+```{r, echo = FALSE}
+    plot(activityPerInterval, type="l", main = "Average daily activity pattern", xlab = "Interval", ylab = "Average steps", col = "red")
+```
+ 
+ * Maximum average per 5-minulte interval
+```{r, echo = FALSE}
+    max(activityPerInterval$averageActivity)
+```
+ 
 ## Imputing missing values
+* Total number of missing values in the data set
+```{r, echo = FALSE}
+    activity[, sum(is.na(steps))]
+```
+ 
+ * New data set with the missing data filled in using the average per 5-minute interval across all days.
+```{r, echo = TRUE, warning = FALSE}
+ 
+    filledActivity <- activity[, list(date, filledSteps = mean(steps, na.rm = TRUE), steps), by = interval][order(date, interval)][is.na(steps), steps := filledSteps]
 
+```
 
+ * Total number of steps taken per day
+```{r}
+    filledActivity[, totalActivity := sum(steps), by = date]
+```
+ 
+```{r, echo = FALSE}
+    par(mfrow = c(2,1), mar = c(4, 4, 3, 2))
+    hist(activity$totalActivity, breaks=20, main = "Histogram of the total number of steps taken each day", xlab ="")
+    hist(filledActivity$totalActivity, breaks=20, main = "Histogram of the total number of steps taken each day (NA s removed)", xlab = "Total steps per day")
+```
 
+ * Mean of total number of steps taken per day
+```{r, echo = FALSE}
+    mean(activity$totalActivity, na.rm = TRUE)
+```
+ 
+ * Median of total number of steps taken per day
+```{r, echo = FALSE}
+    median(activity$totalActivity, na.rm = TRUE)
+```
+ 
+ * Mean of total number of steps taken per day (NA s removed)
+```{r, echo = FALSE}
+    mean(filledActivity$totalActivity, na.rm = TRUE)
+```
+ 
+ * Median of total number of steps taken per day (NA s removed)
+```{r, echo = FALSE}
+    median(filledActivity$totalActivity, na.rm = TRUE)
+```
+ 
+ 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r, echo = FALSE}
+    weekend = c(1, 7)
+    weekdays = c(2, 3, 4, 5, 6)
+```
+ * Add new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{r, echo = TRUE}
+    filledActivity[wday(as.Date(date)) %in% weekend, day := "weekend"]
+    filledActivity[wday(as.Date(date)) %in% weekdays, day := "weekday"]
+    filledActivity[,day := factor(day)]
+    
+    activityPerIntervalWeekends <- filledActivity[day == "weekend", list(averageActivity = mean(steps, na.rm = TRUE)), by = interval]
+    activityPerIntervalWeekdays <- filledActivity[day == "weekday", list(averageActivity = mean(steps, na.rm = TRUE)), by = interval]
+```
+```{r, echo = FALSE}    
+    par(mfrow = c(2,1), mar = c(4, 4, 3, 2))
+    
+    plot(activityPerIntervalWeekends, type="l", main = "Average daily activity pattern Weekends", col = "red")
+    plot(activityPerIntervalWeekdays, type="l", main = "Average daily activity pattern Weekdays", col = "red")
+```
